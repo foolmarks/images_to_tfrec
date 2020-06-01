@@ -1,2 +1,6 @@
-# images_to_tfrec
-Convert images to TensorFlow TFRecords format
+# Convert images to TensorFlow TFRecords format
+
+
+Work in progress
+
+
