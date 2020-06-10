@@ -157,7 +157,7 @@ def gen_tfrec(image_dir, label_file, tfrec_dir, img_shard, encode, tfrec_base):
 
   # calculate how many shards we will generate and number of images in last shard
   last_shard, num_shards = _calc_num_shards(all_images, img_shard)
-  print (num_shards,'TFRecord files will be created.)
+  print (num_shards,'TFRecord files will be created.')
   if last_shard != 0:
     print ('Last TFRecord file will have',last_shard,'images.')
 
