@@ -22,7 +22,7 @@ wget -c --no-clobber http://dl.caffe.berkeleyvision.org/caffe_ilsvrc12.tar.gz
 tar -xvf caffe_ilsvrc12.tar.gz --skip-old-files val.txt
 ```
 
-5. Run the make_tfrec.py script which will
+5. Run the make_tfrec.py script which will create 10 tfrecord files in a folder called 'tfrecords'. The files will be named data_0.tfrecord to data_9.tfrecord.
 
 ```python
 python -u make_tfrec.py \
@@ -34,19 +34,16 @@ python -u make_tfrec.py \
    --num_images   0
 ```
 
---this will create 10 tfrecord files in a folder called 'tfrecords'. The files will be named data_0.tfrecord to data_9.tfrecord.
-
-
 Arguments for make_tfrec.py:
 
-| Argument              | Description                                                    |
-|---------------------- | -------------------------------------------------------------- |
-|`--image_dir` or `-dir`| name and path of folder that contains images to be converted   |
-|`--label_file` or `-l` | Name of input function used in calibration pre-processing      |
-|`--output_dir`         | Name of the output folder where the quantized models are saved |
-|`--input_nodes`        | Name(s) of the input nodes                                     |
-|`--output_nodes`       | Name(s) of the output nodes                                    |
-|`--input_shapes`       | Shape(s) of the input nodes                                    |
-|`--calib_iter`         | Number of calibration iterations                               |
+| Argument                | Description                                                    |
+|-------------------------| -------------------------------------------------------------- |
+|`--image_dir` or `-dir`  | Name and path of folder that contains images to be converted   |
+|`--label_file` or `-l`   | Name and path of text file containing ground truth labels      |
+|`--img_shard` or `-s`    | Number of images and labels in each tfrecord file              |
+|`--tfrec_base` or `-tfb` | Base name of tfrecord files                                    |
+|`--tfrec_dir` or `-tfdir`| Name and path of folder where tfrecord files are saved to      |
+|`--num_images` or `-n`   | Total number of images to be converted. 0 means convert all    |
 
 
+Last tfrecord file - script reports
