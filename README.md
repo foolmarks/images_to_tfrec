@@ -8,7 +8,7 @@ The script runs faster than many other similar examples and will produce tfrecor
 
    + Tested with TensorFlow 2.3
 
-## How to use the script
+## How to use the image_to_tfrec script
 
 1. Clone this repository.
 
@@ -167,4 +167,75 @@ def write_tfrec(tfrec_filename, image_dir, img_list, label_list):
   ```
 
 In this case, each TFRecord has 5 fields - the ground truth label (int64), the original image height, width and number of channels (int64) and the JPEG encoded image which has been converted from tf.string to a list of bytes by the `_bytes_feature()` function.
+
+
+
+## Using the TFRecord files in training/evaluation
+
+Now that we have a number of TFRecord files, we need to use them in our TensorFlow2 training and evaluation scripts. The easiets way to do this is to first create a function that will be responsible for parsing each TFRecord and returing the image and its associated label:
+
+
+```python
+def parser(data_record):
+    ''' TFRecord parser '''
+
+    feature_dict = {
+      'label' : tf.io.FixedLenFeature([], tf.int64),
+      'height': tf.io.FixedLenFeature([], tf.int64),
+      'width' : tf.io.FixedLenFeature([], tf.int64),
+      'chans' : tf.io.FixedLenFeature([], tf.int64),
+      'image' : tf.io.FixedLenFeature([], tf.string)
+    }
+    sample = tf.io.parse_single_example(data_record, feature_dict)
+    label = tf.cast(sample['label'], tf.int32)
+
+    h = tf.cast(sample['height'], tf.int32)
+    w = tf.cast(sample['width'], tf.int32)
+    c = tf.cast(sample['chans'], tf.int32)
+    image = tf.io.decode_image(sample['image'], channels=3)
+    image = tf.reshape(image,[h,w,3])
+
+    return image, label
+```
+
+Note how we have another feature dictionary similar to the one used in creating the TFRecords. The function will parse a single TFRecord, decode the image string of bytes, reshape it and return it as a tensor of shape height,width,chans along with its associated label as a 32bit integer tensor.
+
+The parser function can then be used in the creation of a tf.data.Dataset:
+
+
+```python
+def input_fn(tfrec_dir, batchsize, height, width):
+    '''
+    Dataset creation and augmentation pipeline
+    '''
+    tfrecord_files = tf.data.Dataset.list_files('{}/*.tfrecord'.format(tfrec_dir), shuffle=False)
+    dataset = tf.data.TFRecordDataset(tfrecord_files)
+    dataset = dataset.map(parser, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    
+    dataset = dataset.map(...add preprocessing in here.....)
+    
+    dataset = dataset.batch(batchsize, drop_remainder=True)
+    dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+
+    return dataset
+```
+
+The we can just create a dataset like this:
+
+```python
+train_dataset = input_fn(tfrec_dir, batchsize, height, width)
+```
+
+..and pass it to our model:
+
+```python
+trai_history = model.fit(train_dataset,
+                        steps=None,
+                        verbose=1)
+                        
+scores = model.evaluate(test_dataset,
+                        steps=None,
+                        verbose=1)
+```
+
 
