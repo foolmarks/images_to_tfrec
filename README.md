@@ -154,7 +154,17 @@ def write_tfrec(tfrec_filename, image_dir, img_list, label_list):
   We need the shape as the image will be in serial string format when it is unpacked from the TFRecord and will need to be reshaped before being input to a model.  
   Reading just the header is much faster than decoding the entire JPEG image to get the shape and this is the key to the speed of this script.
   
+  The format of the TFRecords is determined by the features dictionary:
   
+   ```python
+   feature_dict = {
+     'label' : _int64_feature(int(label_list[i])),
+     'height': _int64_feature(image_shape[0]),
+     'width' : _int64_feature(image_shape[1]),
+     'chans' : _int64_feature(image_shape[2]),
+     'image' : _bytes_feature(image)
+   }
+  ```
 
-
+In this case, each TFRecord has 5 fields - the ground truth label (int64), the original image height, width and number of channels (int64) and the JPEG encoded image which has been converted from tf.string to a list of bytes by the `_bytes_feature()` function.
 
