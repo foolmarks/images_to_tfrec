@@ -39,4 +39,14 @@ python -u make_tfrec.py \
 
 Arguments for make_tfrec.py:
 
+| Argument              | Description                                                    |
+|---------------------- | -------------------------------------------------------------- |
+|`--image_dir` or `-dir`| name and path of folder that contains images to be converted   |
+|`--label_file` or `-l` | Name of input function used in calibration pre-processing      |
+|`--output_dir`         | Name of the output folder where the quantized models are saved |
+|`--input_nodes`        | Name(s) of the input nodes                                     |
+|`--output_nodes`       | Name(s) of the output nodes                                    |
+|`--input_shapes`       | Shape(s) of the input nodes                                    |
+|`--calib_iter`         | Number of calibration iterations                               |
+
 
