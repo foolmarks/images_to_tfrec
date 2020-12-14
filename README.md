@@ -53,6 +53,3 @@ If `--num_images` is not an exact multiple of `--img_shard` then the last tfreco
 ```shell
 Last TFRecord file will have 56 images.
 ```
-
-
-
