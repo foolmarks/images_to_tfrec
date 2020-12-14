@@ -204,17 +204,19 @@ The parser function can then be used in the creation of a tf.data.Dataset:
 
 
 ```python
-def input_fn(tfrec_dir, batchsize, height, width):
+def input_fn(tfrec_dir, batchsize):
     '''
     Dataset creation and augmentation pipeline
     '''
     tfrecord_files = tf.data.Dataset.list_files('{}/*.tfrecord'.format(tfrec_dir), shuffle=False)
     dataset = tf.data.TFRecordDataset(tfrecord_files)
+    
     dataset = dataset.map(parser, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     
     dataset = dataset.map(...add preprocessing in here.....)
     
-    dataset = dataset.batch(batchsize, drop_remainder=True)
+    dataset = dataset.repeat()
+    dataset = dataset.batch(batchsize, drop_remainder=False)
     dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
     return dataset
@@ -223,19 +225,19 @@ def input_fn(tfrec_dir, batchsize, height, width):
 The we can just create a dataset like this:
 
 ```python
-train_dataset = input_fn(tfrec_dir, batchsize, height, width)
+train_dataset = input_fn(tfrec_dir, batchsize)
 ```
 
 ..and pass it to our model:
 
 ```python
-trai_history = model.fit(train_dataset,
-                        steps=None,
-                        verbose=1)
+train_history = model.fit(train_dataset,
+                        ..
+                        )
                         
 scores = model.evaluate(test_dataset,
-                        steps=None,
-                        verbose=1)
+                        ..
+                        )
 ```
 
 
