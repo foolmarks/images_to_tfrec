@@ -1,5 +1,12 @@
 # Convert images to TensorFlow TFRecords format
 
+One of the most common formats for use with the TensorFlow tf.data API is TFRecords. This repository contains a script file (images_to_tfrec.py) that converts a folder of images and a text file of ground truth labels into a number of TFRecord files.
+
+It is specifically set up for the ImageNet2012 validation dataset but could easily be applied to any folder of images.
+
++ Tested with TensorFlow 2.3
+
+## How to use the script
 
 1. Clone this repository.
 
@@ -25,7 +32,7 @@ tar -xvf caffe_ilsvrc12.tar.gz --skip-old-files val.txt
 5. Run the make_tfrec.py script which will create 10 tfrecord files in a folder called 'tfrecords'. The files will be named data_0.tfrecord to data_9.tfrecord.
 
 ```python
-python -u make_tfrec.py \
+python -u images_to_tfrec.py \
    --image_dir    val_images \
    --label_file   val.txt \
    --img_shard    5000 \
@@ -53,3 +60,8 @@ If `--num_images` is not an exact multiple of `--img_shard` then the last tfreco
 ```shell
 Last TFRecord file will have 56 images.
 ```
+
+## How the script works
+
+xxx
+
