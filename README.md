@@ -46,4 +46,13 @@ Arguments for make_tfrec.py:
 |`--num_images` or `-n`   | Total number of images to be converted. 0 means convert all    |
 
 
-Last tfrecord file - script reports
+The number of tfrecord files created will depend upon the nunber of images per tfrecord file (`--img_shard`) and the total number of images converted (`--num_images`). To convert all images, leave the `--num_images` at its default setting of 0.
+
+If `--num_images` is not an exact multiple of `--img_shard` then the last tfrecord file will contain less images than the others and this will be reported by the script, for example:
+
+```shell
+Last TFRecord file will have 56 images.
+```
+
+
+
