@@ -1,12 +1,11 @@
 
-
 '''
 Convert images to Tensorflow TFRecords format files (shards).
 Will convert a folder of images to one or more TFRecord files.
 '''
 
 '''
-Author: Mark Harvey, Xilinx Inc
+Author: Mark Harvey, Dec 2020
 '''
 
 
