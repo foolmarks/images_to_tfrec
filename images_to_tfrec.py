@@ -1,43 +1,23 @@
+
+
 '''
 Convert images to Tensorflow TFRecords format files (shards).
 Will convert a folder of images to one or more TFRecord files.
-
-Author: Mark Harvey
-Date  : 2nd June 2020
 '''
 
-
 '''
-Arguments:
-  --image_dir  : Path to folder where images are stored. This folder should only contain image files.
-               : Default is image_dir
-  --img_shard  : Number of images in each shard. If the number of images in --image_dir is not an 
-               : exact multiple of shard_size, the last shard file will contain less than img_shard images.
-               : If img_shard is > than number of images in img_dir, all images will be converted.
-               : Default is 100.
-  --label_file : Full path of a text file which provides labels for each image.
-               : If a file of label is provided it must be a text file with one line per image file.
-               : Each line must be of the format:  image_file_name    integer label..for example: bus001.png 12
-               : Default is val.txt
-  --tfrec_dir  : Path to folder where TFRecord files are written.
-               : Default is tfrec_dir
-  --encode     : If enabled, will encode the images to JPEG format before writing to TFRecords file.
-               : Default is disabled (i.e. no encoding)
-  --tfrec_base : Base file name for TFRecords files. Each TFRecord file will be names with this base and an index.
-               : Default is dataset.
-
-Returns:
-  One or more TFRecord files.
+Author: Mark Harvey, Xilinx Inc
 '''
 
 
 import os
 import argparse
-import cv2
 import shutil
+from tqdm import tqdm
 
+# Silence TensorFlow messages
+os.environ['TF_CPP_MIN_LOG_LEVEL']='3'
 import tensorflow as tf
-from progressbar import ProgressBar
 
 
 _divider = '-------------------------------------'
@@ -59,13 +39,6 @@ def _int64_feature(value):
   return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
 
 
-def _list_images(image_dir):
-  ''' Create sorted list of images '''
-  list_images = os.listdir(image_dir)
-  list_images.sort()
-  return list_images
-
-
 def _calc_num_shards(img_list, img_shard):
   ''' calculate number of shards'''
   last_shard =  len(img_list) % img_shard
@@ -76,50 +49,41 @@ def _calc_num_shards(img_list, img_shard):
   return last_shard, num_shards
 
 
-def _check_labels_file(label_file, img_list):
-  ''' check there is one label for every image '''  
+def _create_images_labels(label_file):
+  ''' create lists of image filenames and their labels '''  
   f= open(label_file,'r')
   linesList = f.readlines()
-  linesList.sort()
   f.close()
   labels_list=[]
-  for i in range(len(linesList)):
-    fileName, label = linesList[i].split()
-    if (fileName != img_list[i]):
-      raise SystemExit('Error in labels file, mismatch at line #',str(i))
-    else:
-      labels_list.append(int(label))
-
-  return labels_list
+  fileNames_list=[]
+  for line in linesList:
+    fileName, label = line.split()
+    labels_list.append(int(label.strip()))
+    fileNames_list.append(fileName.strip())
+  return labels_list, fileNames_list
   
 
-def write_tfrec(tfrec_filename, image_dir, img_list, label_list, encode):
+def write_tfrec(tfrec_filename, image_dir, img_list, label_list):
   ''' write TFRecord file '''
 
   with tf.io.TFRecordWriter(tfrec_filename) as writer:
 
     for i in range(len(img_list)):
       filePath = os.path.join(image_dir, img_list[i])
-      image = cv2.imread(filePath)
-      image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-      # if encode = True, use JPEG encoding
-      if (encode):
-        _,im_buf_arr = cv2.imencode('.jpg', image)
-        image_tf = _bytes_feature(im_buf_arr.tostring())
-        is_jpeg=1
-      else:
-        image_tf = _bytes_feature(image.tostring())
-        is_jpeg=0
+      # read the JPEG source file into a tf string
+      image = tf.io.read_file(filePath)
+
+      # get the shape of the image from the JPEG file header
+      image_shape = tf.io.extract_jpeg_shape(image, output_type=tf.dtypes.int32, name=None)
 
       # features dictionary
       feature_dict = {
-        'height'  : _int64_feature(image.shape[0]),
-        'width'   : _int64_feature(image.shape[1]),
-        'chans'   : _int64_feature(image.shape[2]),
-        'label'   : _int64_feature(int(label_list[i])),
-        'is_jpeg' : _int64_feature(is_jpeg),
-        'image'   : image_tf
+        'label' : _int64_feature(int(label_list[i])),
+        'height': _int64_feature(image_shape[0]),
+        'width' : _int64_feature(image_shape[1]),
+        'chans' : _int64_feature(image_shape[2]),
+        'image' : _bytes_feature(image)
       }
 
       # Create Features object
@@ -135,46 +99,42 @@ def write_tfrec(tfrec_filename, image_dir, img_list, label_list, encode):
 
 
 
+def make_tfrec(image_dir, img_shard, tfrec_base, label_file, tfrec_dir, num_images):
 
+  # make destination directory
+  os.makedirs(tfrec_dir, exist_ok=True)
+  print('Directory',tfrec_dir,'created',flush=True)
 
-def gen_tfrec(image_dir, label_file, tfrec_dir, img_shard, encode, tfrec_base):
+  # make lists of images and their labels
+  all_labels, all_images = _create_images_labels(label_file)
+  print('Found',len(all_labels),'images and labels in',label_file)
 
-  # make destination directory if necessary
-  if os.path.exists(tfrec_dir):
-    shutil.rmtree(tfrec_dir, ignore_errors=True)
-    print('Deleted contents of',tfrec_dir)
-
-  os.mkdir(tfrec_dir)
-  print('Directory',tfrec_dir,'created')
-
-  # make a list of all image files in source folder
-  all_images = _list_images(image_dir)
-  print('Found',len(all_images),'image files in',image_dir)
-
-  # check labels file if specified
-  all_labels = _check_labels_file(label_file, all_images)
-  print('Found',len(all_labels),'labels in',label_file)
+  if (num_images != 0 and num_images < len(all_images)):
+    all_images = all_images[:num_images]
+    all_labels = all_labels[:num_images]
+    print('Using',num_images,'images..')
+  else:
+    print('Using',len(all_labels),'images..')
 
   # calculate how many shards we will generate and number of images in last shard
   last_shard, num_shards = _calc_num_shards(all_images, img_shard)
   print (num_shards,'TFRecord files will be created.')
-  if last_shard != 0:
+  if (last_shard>0):
     print ('Last TFRecord file will have',last_shard,'images.')
 
   # create TFRecord files (shards)
   start = 0
-  progress = ProgressBar()
 
-  for i in progress(range(num_shards)):
+  for i in tqdm(range(num_shards)):
 
     tfrec_filename = tfrec_base+'_'+str(i)+'.tfrecord'
     write_path = os.path.join(tfrec_dir, tfrec_filename)
 
     if (i == num_shards-1):
-      write_tfrec(write_path, image_dir, all_images[start:], all_labels[start:], encode)
+      write_tfrec(write_path, image_dir, all_images[start:], all_labels[start:])
     else:
       end = start + img_shard
-      write_tfrec(write_path, image_dir, all_images[start:end], all_labels[start:end], encode)
+      write_tfrec(write_path, image_dir, all_images[start:end], all_labels[start:end])
       start = end
 
   return
@@ -185,50 +145,28 @@ def gen_tfrec(image_dir, label_file, tfrec_dir, img_shard, encode, tfrec_base):
 def main():
   # construct the argument parser and parse the arguments
   ap = argparse.ArgumentParser()
-
-  ap.add_argument('-dir', '--image_dir',
-                  type=str,
-                  default='image_dir',
-                  help='Path to folder that contains images. Default is image_dir')
-  ap.add_argument('-l', '--label_file',
-                  type=str,
-                  default='val.txt',
-                  help='Full path of label file. Default is val.txt')
-  ap.add_argument('-s', '--img_shard',
-                  type=int,
-                  default=100,
-                  help='Number of images per shard. Default is 100') 
-  ap.add_argument('-tfb', '--tfrec_base',
-                  type=str,
-                  default='dataset',
-                  help='Base file name for TFRecord files. Default is dataset') 
-  ap.add_argument('-tfdir', '--tfrec_dir',
-                  type=str,
-                  default='tfrec_dir',
-                  help='Path to folder for saving TFRecord files. Default is tfrec_dir') 
-  ap.add_argument('-e', '--encode',
-                  action='store_true',
-                  help='Encode image files to JPEG format before writing to TFRecord file. Default is disabled i.e. no encoding')  
-
-
-  
+  ap.add_argument('-dir', '--image_dir',   type=str, default='dataset',   help='Path to folder that contains images. Default is dataset')
+  ap.add_argument('-s',   '--img_shard',   type=int, default=5000,        help='Number of images per shard. Default is 100') 
+  ap.add_argument('-tfb', '--tfrec_base',  type=str, default='data',      help='Base file name for TFRecord files. Default is data') 
+  ap.add_argument('-l',   '--label_file',  type=str, default='val.txt',   help='Imagenet validation set ground truths file. Default is val.txt') 
+  ap.add_argument('-tfdir', '--tfrec_dir', type=str, default='tfrecords', help='Path to folder for saving TFRecord files. Default is tfrecords')  
+  ap.add_argument('-n',   '--num_images',  type=int, default=0,           help='Number of images to convert - 0 means convert all. Default is 100')  
   args = ap.parse_args()  
   
   print (_divider)
   print ('Command line options:')
   print (' --image_dir  : ', args.image_dir)
-  print (' --label_file : ', args.label_file)
   print (' --img_shard  : ', args.img_shard)
-  print (' --tfrec_dir  : ', args.tfrec_dir)
-  print (' --encode     : ', args.encode)
   print (' --tfrec_base : ', args.tfrec_base)
+  print (' --label_file : ', args.label_file)
+  print (' --tfrec_dir  : ', args.tfrec_dir)
+  print (' --num_images : ', args.num_images)
   print (_divider)
 
 
-  gen_tfrec(args.image_dir, args.label_file, args.tfrec_dir, args.img_shard, args.encode, args.tfrec_base)
+  make_tfrec(args.image_dir, args.img_shard, args.tfrec_base, args.label_file, args.tfrec_dir, args.num_images)
 
 
 if __name__ == '__main__':
   main()
-
 
