@@ -29,7 +29,7 @@ wget -c --no-clobber http://dl.caffe.berkeleyvision.org/caffe_ilsvrc12.tar.gz
 tar -xvf caffe_ilsvrc12.tar.gz --skip-old-files val.txt
 ```
 
-5. Run the make_tfrec.py script which will create 10 tfrecord files in a folder called 'tfrecords'. The files will be named data_0.tfrecord to data_9.tfrecord.
+5. Running the images_to_tfrec.py script like this will create 10 tfrecord files in a folder called 'tfrecords'. The files will be named data_0.tfrecord to data_9.tfrecord. Each tfrecord file will contain 5000 images and labels:
 
 ```python
 python -u images_to_tfrec.py \
@@ -63,5 +63,21 @@ Last TFRecord file will have 56 images.
 
 ## How the script works
 
-xxx
+The script expects that the label file has a image file name and an integer label on each line:
+
+```
+ILSVRC2012_val_00000001.JPEG 65
+ILSVRC2012_val_00000002.JPEG 970
+ILSVRC2012_val_00000003.JPEG 230
+ILSVRC2012_val_00000004.JPEG 809
+ILSVRC2012_val_00000005.JPEG 516
+ILSVRC2012_val_00000006.JPEG 57
+ILSVRC2012_val_00000007.JPEG 334
+ILSVRC2012_val_00000008.JPEG 415
+ILSVRC2012_val_00000009.JPEG 674
+ILSVRC2012_val_00000010.JPEG 332
+.
+```
+
+
 
