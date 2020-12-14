@@ -1,10 +1,12 @@
-# Convert images to TensorFlow TFRecords format
+# Convert JPEG images to TensorFlow TFRecords format
 
-One of the most common formats for use with the TensorFlow tf.data API is TFRecords. This repository contains a script file (images_to_tfrec.py) that converts a folder of images and a text file of ground truth labels into a number of TFRecord files.
+One of the most common formats for use with the TensorFlow tf.data API is TFRecords. This repository contains a script file (images_to_tfrec.py) that converts a folder of JPEG encoded images and a text file of ground truth labels into a number of TFRecord files.
 
 It is specifically set up for the ImageNet2012 validation dataset but could easily be applied to any folder of images.
 
-+ Tested with TensorFlow 2.3
+The script runs faster than many other similar examples and will produce tfrecord files which occupy he same amount fo disk spce as the original images.
+
+   + Tested with TensorFlow 2.3
 
 ## How to use the script
 
@@ -78,6 +80,81 @@ ILSVRC2012_val_00000009.JPEG 674
 ILSVRC2012_val_00000010.JPEG 332
 .
 ```
+
+The labels file will be read and each line split into a file name and a label:
+
+```python
+def _create_images_labels(label_file):
+  ''' create lists of image filenames and their labels '''  
+  f= open(label_file,'r')
+  linesList = f.readlines()
+  f.close()
+  labels_list=[]
+  fileNames_list=[]
+  for line in linesList:
+    fileName, label = line.split()
+    labels_list.append(int(label.strip()))
+    fileNames_list.append(fileName.strip())
+  return labels_list, fileNames_list
+```
+
+The list returned by this function maintain the order as per the labels file so that the images and labels are packed into the tfrecord files in the same order as they appear in the labels file.
+
+The most import function is the one that creates each tfrecord file:
+
+```python
+def write_tfrec(tfrec_filename, image_dir, img_list, label_list):
+  ''' write TFRecord file '''
+
+  with tf.io.TFRecordWriter(tfrec_filename) as writer:
+
+    for i in range(len(img_list)):
+      filePath = os.path.join(image_dir, img_list[i])
+
+      # read the JPEG source file into a tf.string
+      image = tf.io.read_file(filePath)
+
+      # get the shape of the image from the JPEG file header
+      image_shape = tf.io.extract_jpeg_shape(image, output_type=tf.dtypes.int32, name=None)
+
+      # features dictionary
+      feature_dict = {
+        'label' : _int64_feature(int(label_list[i])),
+        'height': _int64_feature(image_shape[0]),
+        'width' : _int64_feature(image_shape[1]),
+        'chans' : _int64_feature(image_shape[2]),
+        'image' : _bytes_feature(image)
+      }
+
+      # Create Features object
+      features = tf.train.Features(feature = feature_dict)
+
+      # create Example object
+      tf_example = tf.train.Example(features=features)
+
+      # serialize Example object into TfRecord file
+      writer.write(tf_example.SerializeToString())
+
+  return
+  ```
+  
+  Note how each JPEG file is first read into a variable of type tf.string:
+  
+  ```python
+  image = tf.io.read_file(filePath)
+  ```
+  
+  
+  The shape of the original image is read from the JPEG file header:
+  
+   ```python
+  image_shape = tf.io.extract_jpeg_shape(image, output_type=tf.dtypes.int32, name=None)
+  ```
+  
+  We need the shape as the image will be in serial string format when it is unpacked from the TFRecord and will need to be reshaped before being input to a model.  
+  Reading just the header is much faster than decoding the entire JPEG image to get the shape and this is the key to the speed of this script.
+  
+  
 
 
 
