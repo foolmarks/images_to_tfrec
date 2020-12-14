@@ -36,14 +36,14 @@ python -u make_tfrec.py \
 
 Arguments for make_tfrec.py:
 
-| Argument                | Description                                                    |
-|-------------------------| -------------------------------------------------------------- |
-|`--image_dir` or `-dir`  | Name and path of folder that contains images to be converted   |
-|`--label_file` or `-l`   | Name and path of text file containing ground truth labels      |
-|`--img_shard` or `-s`    | Number of images and labels in each tfrecord file              |
-|`--tfrec_base` or `-tfb` | Base name of tfrecord files                                    |
-|`--tfrec_dir` or `-tfdir`| Name and path of folder where tfrecord files are saved to      |
-|`--num_images` or `-n`   | Total number of images to be converted. 0 means convert all    |
+| Argument                |  Type  | Default |Description|
+|-------------------------|:------:|:-------:|:------------------------------------------------------ |
+|`--image_dir` or `-dir`  | string |val_images|Name and path of folder that contains images to be converted |
+|`--label_file` or `-l`   | string |val.txt|Name and path of text file containing ground truth labels |
+|`--img_shard` or `-s`    | integer|5000|Number of images and labels in each tfrecord file |
+|`--tfrec_base` or `-tfb` | string |data|Base name of tfrecord files |
+|`--tfrec_dir` or `-tfdir`| string |tfrecords|Name and path of folder where tfrecord files are saved to |
+|`--num_images` or `-n`   | integer|0|Total number of images to be converted. 0 means convert all |
 
 
 The number of tfrecord files created will depend upon the nunber of images per tfrecord file (`--img_shard`) and the total number of images converted (`--num_images`). To convert all images, leave the `--num_images` at its default setting of 0.
