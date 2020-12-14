@@ -144,7 +144,7 @@ def make_tfrec(image_dir, img_shard, tfrec_base, label_file, tfrec_dir, num_imag
 def main():
   # construct the argument parser and parse the arguments
   ap = argparse.ArgumentParser()
-  ap.add_argument('-dir', '--image_dir',   type=str, default='dataset',   help='Path to folder that contains images. Default is dataset')
+  ap.add_argument('-dir', '--image_dir',   type=str, default='val_images',help='Path to folder that contains images. Default is val_images')
   ap.add_argument('-s',   '--img_shard',   type=int, default=5000,        help='Number of images per shard. Default is 100') 
   ap.add_argument('-tfb', '--tfrec_base',  type=str, default='data',      help='Base file name for TFRecord files. Default is data') 
   ap.add_argument('-l',   '--label_file',  type=str, default='val.txt',   help='Imagenet validation set ground truths file. Default is val.txt') 
